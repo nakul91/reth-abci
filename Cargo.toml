@@ -1,0 +1,3 @@
+[workspace]
+members = ["crates/abci-node"]
+resolver = "2"
