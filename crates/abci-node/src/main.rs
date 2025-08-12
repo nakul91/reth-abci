@@ -17,10 +17,9 @@ async fn main() -> Result<()> {
     let app = EvmAbciApp::boot("./data/reth")?;
 
     // ABCI over TCP for CometBFT's proxy_app
-    ServerBuilder::new(app)
-        .bind("127.0.0.1:26658")?
-        .listen()
-        .await?;
+    ServerBuilder::new(1024)
+    .bind("127.0.0.1:26658", app)?
+    .listen()?;
 
     Ok(())
 }

@@ -1,16 +1,18 @@
-use anyhow::{Result};
-use tendermint::abci::types::Header as TmHeader;
+use anyhow::Result;
+use tendermint::block::Header as TmHeader;               // ✅ public header type
+use tendermint_proto::abci::Event as AbciEvent;   // ✅ public event type
 
 // --- Reth imports are behind a feature flag so the skeleton compiles without them ---
 #[cfg(feature = "with-reth")]
 use {
-    reth_db::{mdbx::DatabaseArguments},
+    reth_db::mdbx::DatabaseArguments,
     reth_primitives::{ChainSpec, TxEnvelope, U256},
-    reth_transaction_pool::{Pool},
+    reth_transaction_pool::Pool,
     reth_evm::execute::{BlockEnv, CfgEnv, TxEnv},
 };
 
 // Public context available to the ABCI app
+#[derive(Clone)]
 pub struct RethCtx {
     #[allow(dead_code)]
     pub db_path: String,
@@ -48,13 +50,14 @@ impl RethCtx {
         Proposed { txs: vec![] }
     }
 
-    pub fn quick_validate_proposal(&self, _txs: &[bytes::Bytes]) -> bool {
+    // ✅ accept &[Vec<u8>] so you don't need bytes::Bytes imports
+    pub fn quick_validate_proposal(&self, _txs: &[Vec<u8>]) -> bool {
         // TODO: lightweight stateless checks
         true
     }
 }
 
-pub struct Proposed { pub txs: Vec<Vec<u8>>; }
+pub struct Proposed { pub txs: Vec<Vec<u8>> }
 
 pub struct BlockExec {
     header: TmHeader,
@@ -83,7 +86,8 @@ impl BlockExec {
         // TODO: flush overlay to MDBX and compute final roots
         let state_root = [0u8; 32];
         let receipts_root = [0u8; 32];
-        let ts = self.header.time.unix_timestamp() as u64;
+        // Avoid private/proto time APIs for now; not used elsewhere
+        let ts = 0u64;
         Ok((state_root, receipts_root, self.gas_used, ts))
     }
 }
@@ -91,5 +95,7 @@ impl BlockExec {
 pub struct Receipt { /* fill with fields as needed */ }
 impl Receipt {
     pub fn ok() -> Self { Self{} }
-    pub fn into_abci_events(self) -> Vec<tendermint_abci::Event> { vec![] }
+    pub fn into_abci_events(self) -> Vec<AbciEvent> {
+        Vec::new()
+    }
 }
